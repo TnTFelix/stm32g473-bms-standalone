@@ -1,0 +1,10 @@
+firmware/build/
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+bms_host_sim
+bms_host_sim.exe
+.DS_Store
+node_modules/
