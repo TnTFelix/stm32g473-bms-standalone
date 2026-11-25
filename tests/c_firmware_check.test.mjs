@@ -719,8 +719,12 @@ describe('C Firmware Static & Dual-Track Parity Checks (CF-01..CF-25)', () => {
         }
 
         assert.equal(cfg.INA226_SHUNT_OHM, 0.002);
-        assert.equal(cfg.VSENSE_DIVIDER_RATIO, 6);
-        assert.equal(cfg.PROT_BAT_OV_TRIP_V, 16.9);
+        assert.equal(cfg.VSENSE_DIVIDER_RATIO, 5.987);
+        assert.equal(cfg.PROT_BAT_OV_TRIP_V, 16.85);
+        assert.equal(cfg.PROT_BAT_OV_CRIT_V, 16.9);
+        assert.equal(cfg.PROT_SHORT_CIRCUIT_A, 18.0);
+        assert.equal(cfg.BMS_CHARGE_EFFICIENCY, 0.992);
+        assert.equal(cfg.OCV_REST_QUALIFY_MS, 1800000);
         assert.equal(cfg.RELAY4_AUX_PIN, 3);
         assert.equal(cfg.OLED_SCK_PORT, cfg.BMS_PORT_A);
         assert.equal(cfg.BMS_PORT_A, 0);

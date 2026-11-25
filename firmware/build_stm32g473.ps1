@@ -1,6 +1,6 @@
 param(
-    [string]$ToolchainBin = "D:\stm32 cube\cubr\STM32CubeIDE_2.0.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712\tools\bin",
-    [string]$CubeDir = "C:\Users\binhb\STM32Cube\Repository\STM32Cube_FW_G4_V1.6.3"
+    [string]$ToolchainBin = "D:\ST\STM32CubeIDE_2.2.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.14.3.rel1.win32_1.0.100.202602081740\tools\bin",
+    [string]$CubeDir = "C:\Users\MSI GAMING\STM32Cube\Repository\STM32Cube_FW_G4_V1.6.3"
 )
 
 $ErrorActionPreference = "Stop"

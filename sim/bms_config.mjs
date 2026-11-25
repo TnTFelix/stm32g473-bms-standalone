@@ -18,6 +18,8 @@ export const INA226_SCL_PORT = BMS_PORT_C;
 export const INA226_SCL_PIN = 8;
 export const INA226_SDA_PORT = BMS_PORT_C;
 export const INA226_SDA_PIN = 9;
+export const INA226_ALERT_PORT = BMS_PORT_C;
+export const INA226_ALERT_PIN = 13;
 
 export const VSENSE_ADC_PORT = BMS_PORT_A;
 export const VSENSE_ADC_PIN = 0;
@@ -48,7 +50,7 @@ export const BMS_NOMINAL_V = 14.8;
 export const BMS_FULL_V = 16.8;
 export const BMS_EMPTY_V = 12.0;
 export const BMS_NOMINAL_CAPACITY_AH = 10.0;
-export const BMS_CHARGE_EFFICIENCY = 0.95;
+export const BMS_CHARGE_EFFICIENCY = 0.992;
 export const BMS_INITIAL_SOC_PCT = 80.0;
 
 /* C. INA226 current/voltage sensor and shunt configuration */
@@ -79,11 +81,11 @@ export const INA226_CALIBRATION_VALUE = 2560;
 export const INA226_BUS_REG_MAX = 0x7FFF;
 export const INA226_FILTER_ALPHA = 0.50;
 
-/* D. Charger input voltage sensor on ADC1 PA0 */
+/* D. Charger input voltage sensor on ADC1 PA0 (E96: R1 = 37.4 kOhm, R2 = 7.5 kOhm) */
 export const ADC_VREF_V = 3.3;
 export const ADC_RESOLUTION = 4095;
 export const ADC_PIN_MAX_SAFE_V = 3.25;
-export const VSENSE_DIVIDER_RATIO = 6.0;
+export const VSENSE_DIVIDER_RATIO = 5.987;
 export const VSENSE_FILTER_ALPHA = 0.40;
 export const CHARGER_PRESENT_MIN_V = 5.0;
 export const CHARGER_VALID_MIN_V = 13.0;
@@ -97,24 +99,26 @@ export const CHARGE_DONE_VOLTAGE_V = 16.75;
 export const REST_CURRENT_THRESHOLD_A = 0.05;
 export const CHARGE_CV_COMPENSATION = 1.15;
 export const CHARGE_REENABLE_HYST_V = 0.30;
-export const OCV_REST_QUALIFY_MS = 3000;
+export const CHARGE_CONFIRM_TIMEOUT_MS = 2000;
+export const DISCHARGE_CONFIRM_TIMEOUT_MS = 2000;
+export const OCV_REST_QUALIFY_MS = 1800000;
 export const OCV_CORRECTION_BLEND = 0.10;
 export const STARTUP_PRECHARGE_MS = 30;
 export const ESTIMATOR_AVG_CURRENT_ALPHA = 0.20;
 export const ESTIMATOR_MAX_DT_MS = 60000;
 
 /* F. Protection thresholds, debounce, loop periods and OLED geometry */
-export const PROT_BAT_OV_WARN_V = 16.7;
-export const PROT_BAT_OV_TRIP_V = 16.9;
-export const PROT_BAT_OV_CRIT_V = 17.2;
+export const PROT_BAT_OV_WARN_V = 16.65;
+export const PROT_BAT_OV_TRIP_V = 16.85;
+export const PROT_BAT_OV_CRIT_V = 16.90;
 export const PROT_BAT_UV_WARN_V = 12.6;
 export const PROT_BAT_UV_TRIP_V = 12.0;
-export const PROT_BAT_UV_CRIT_V = 11.2;
+export const PROT_BAT_UV_CRIT_V = 11.4;
 export const PROT_CHG_OC_WARN_A = 4.5;
 export const PROT_CHG_OC_TRIP_A = 5.0;
 export const PROT_DIS_OC_WARN_A = 13.5;
 export const PROT_DIS_OC_TRIP_A = 15.0;
-export const PROT_SHORT_CIRCUIT_A = 25.0;
+export const PROT_SHORT_CIRCUIT_A = 18.0;
 export const PROT_DI_DT_MAX_A_PER_STEP = 15.0;
 export const PROT_CHARGER_OV_WARN_V = 17.2;
 export const PROT_CHARGER_OV_TRIP_V = 17.5;
@@ -155,6 +159,8 @@ export const BMS_CONFIG = Object.freeze({
     INA226_SCL_PIN,
     INA226_SDA_PORT,
     INA226_SDA_PIN,
+    INA226_ALERT_PORT,
+    INA226_ALERT_PIN,
     VSENSE_ADC_PORT,
     VSENSE_ADC_PIN,
     RELAY1_MAIN_PORT,
@@ -221,6 +227,8 @@ export const BMS_CONFIG = Object.freeze({
     REST_CURRENT_THRESHOLD_A,
     CHARGE_CV_COMPENSATION,
     CHARGE_REENABLE_HYST_V,
+    CHARGE_CONFIRM_TIMEOUT_MS,
+    DISCHARGE_CONFIRM_TIMEOUT_MS,
     OCV_REST_QUALIFY_MS,
     OCV_CORRECTION_BLEND,
     STARTUP_PRECHARGE_MS,

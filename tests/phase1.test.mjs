@@ -96,6 +96,8 @@ import {
     BMS_MODE_DISCHARGE,
     BMS_MODE_STANDBY,
     BMS_MODE_FAULT,
+    BMS_MODE_CHARGE_CONFIRM,
+    BMS_MODE_DISCHARGE_CONFIRM,
     BMS_MODE_COUNT,
     BMS_MODE,
     PROT_LEVEL_1_NORMAL,
@@ -284,11 +286,11 @@ describe('Group B: Physical Configuration Sanity & Immutability', () => {
             CHARGER_VALID_MIN_V < CHARGER_VALID_MAX_V &&
             CHARGER_VALID_MAX_V <= PROT_CHARGER_OV_WARN_V
         );
-        approx(ADC_VREF_V * VSENSE_DIVIDER_RATIO, 19.8);
+        approx(ADC_VREF_V * VSENSE_DIVIDER_RATIO, 3.3 * 5.987);
         assert.ok(ADC_VREF_V * VSENSE_DIVIDER_RATIO >= PROT_CHARGER_OV_TRIP_V);
         assert.ok(ADC_PIN_MAX_SAFE_V < ADC_VREF_V);
-        approx(ADC_PIN_MAX_SAFE_V * 6, 19.5);
-        assert.ok(ADC_PIN_MAX_SAFE_V * 6 >= PROT_CHARGER_OV_TRIP_V);
+        approx(ADC_PIN_MAX_SAFE_V * VSENSE_DIVIDER_RATIO, 3.25 * 5.987);
+        assert.ok(ADC_PIN_MAX_SAFE_V * VSENSE_DIVIDER_RATIO >= PROT_CHARGER_OV_TRIP_V);
         assert.equal(ADC_RESOLUTION, 4095);
     });
 
@@ -323,7 +325,9 @@ describe('Group C: Data Types, Enums & Fault Bitmasks', () => {
         assert.equal(BMS_MODE_DISCHARGE, 2);
         assert.equal(BMS_MODE_STANDBY, 3);
         assert.equal(BMS_MODE_FAULT, 4);
-        assert.equal(BMS_MODE_COUNT, 5);
+        assert.equal(BMS_MODE_CHARGE_CONFIRM, 5);
+        assert.equal(BMS_MODE_DISCHARGE_CONFIRM, 6);
+        assert.equal(BMS_MODE_COUNT, 7);
 
         assert.equal(PROT_LEVEL_1_NORMAL, 1);
         assert.equal(PROT_LEVEL_2_WARNING, 2);

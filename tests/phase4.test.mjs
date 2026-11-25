@@ -242,7 +242,7 @@ describe('Suite 2: Levels 1-3 Protection, Debounce & Anti-Chattering (P4-B1..B7)
         assert.equal(relay_ctrl_set(state, RELAY_2_CHARGE, true), true);
         assert.equal(relay_ctrl_set(state, RELAY_3_LOAD, true), true);
 
-        state.meas.bus_voltage_v = 16.7;
+        state.meas.bus_voltage_v = 16.65;
         assert.equal(bms_protection_step(state, 10), true);
         assert.equal(state.prot_level, PROT_LEVEL_2_WARNING);
         assert.equal(state.warning_flags, FAULT_BAT_OVERVOLTAGE);
@@ -276,7 +276,7 @@ describe('Suite 2: Levels 1-3 Protection, Debounce & Anti-Chattering (P4-B1..B7)
         state.meas.charger_present = false;
         state.meas.charger_voltage_v = 0;
         state.meas.charger_pin_v = 0;
-        state.meas.bus_voltage_v = 16.95;
+        state.meas.bus_voltage_v = 16.87;
         assert.equal(bms_protection_step(state, 10), true);
         assert.equal(bms_protection_step(state, 10), true);
         assert.equal(state.prot_level, PROT_LEVEL_2_WARNING);
@@ -293,7 +293,7 @@ describe('Suite 2: Levels 1-3 Protection, Debounce & Anti-Chattering (P4-B1..B7)
         assert.equal(relay_ctrl_set(state, RELAY_2_CHARGE, true), true);
         assert.equal(relay_ctrl_set(state, RELAY_3_LOAD, true), true);
 
-        state.meas.bus_voltage_v = 16.95;
+        state.meas.bus_voltage_v = 16.87;
         for (let k = 0; k < 3; k++) {
             assert.equal(bms_protection_step(state, 10), true);
         }

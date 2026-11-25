@@ -30,6 +30,8 @@
 #define INA226_SCL_PIN                  8U
 #define INA226_SDA_PORT                 BMS_PORT_C
 #define INA226_SDA_PIN                  9U
+#define INA226_ALERT_PORT               BMS_PORT_C
+#define INA226_ALERT_PIN                13U /* PC13 / EXTI13 reserved for INA226A SOL alert upgrade */
 
 #define VSENSE_ADC_PORT                 BMS_PORT_A
 #define VSENSE_ADC_PIN                  0U
@@ -60,7 +62,7 @@
 #define BMS_FULL_V                      16.8f
 #define BMS_EMPTY_V                     12.0f
 #define BMS_NOMINAL_CAPACITY_AH         10.0f
-#define BMS_CHARGE_EFFICIENCY           0.95f
+#define BMS_CHARGE_EFFICIENCY           0.992f
 #define BMS_INITIAL_SOC_PCT             80.0f
 
 /* C. INA226 current/voltage sensor and shunt configuration */
@@ -91,11 +93,11 @@
 #define INA226_BUS_REG_MAX              0x7FFFU
 #define INA226_FILTER_ALPHA             0.50f
 
-/* D. Charger input voltage sensor on ADC1 PA0 */
+/* D. Charger input voltage sensor on ADC1 PA0 (E96: R1 = 37.4 kOhm, R2 = 7.5 kOhm) */
 #define ADC_VREF_V                      3.3f
 #define ADC_RESOLUTION                  4095U
 #define ADC_PIN_MAX_SAFE_V              3.25f
-#define VSENSE_DIVIDER_RATIO            6.0f
+#define VSENSE_DIVIDER_RATIO            5.987f /* (37.4k + 7.5k) / 7.5k; calibrate against multimeter */
 #define VSENSE_FILTER_ALPHA             0.40f
 #define CHARGER_PRESENT_MIN_V           5.0f
 #define CHARGER_VALID_MIN_V             13.0f
@@ -109,24 +111,26 @@
 #define REST_CURRENT_THRESHOLD_A        0.05f
 #define CHARGE_CV_COMPENSATION          1.15f
 #define CHARGE_REENABLE_HYST_V          0.30f
-#define OCV_REST_QUALIFY_MS             3000U
+#define CHARGE_CONFIRM_TIMEOUT_MS       2000U
+#define DISCHARGE_CONFIRM_TIMEOUT_MS    2000U
+#define OCV_REST_QUALIFY_MS             1800000U
 #define OCV_CORRECTION_BLEND            0.10f
 #define STARTUP_PRECHARGE_MS            30U
 #define ESTIMATOR_AVG_CURRENT_ALPHA     0.20f
 #define ESTIMATOR_MAX_DT_MS             60000U
 
 /* F. Protection thresholds, debounce, loop periods and OLED geometry */
-#define PROT_BAT_OV_WARN_V              16.7f
-#define PROT_BAT_OV_TRIP_V              16.9f
-#define PROT_BAT_OV_CRIT_V              17.2f
+#define PROT_BAT_OV_WARN_V              16.65f
+#define PROT_BAT_OV_TRIP_V              16.85f
+#define PROT_BAT_OV_CRIT_V              16.90f
 #define PROT_BAT_UV_WARN_V              12.6f
 #define PROT_BAT_UV_TRIP_V              12.0f
-#define PROT_BAT_UV_CRIT_V              11.2f
+#define PROT_BAT_UV_CRIT_V              11.4f
 #define PROT_CHG_OC_WARN_A              4.5f
 #define PROT_CHG_OC_TRIP_A              5.0f
 #define PROT_DIS_OC_WARN_A              13.5f
 #define PROT_DIS_OC_TRIP_A              15.0f
-#define PROT_SHORT_CIRCUIT_A            25.0f
+#define PROT_SHORT_CIRCUIT_A            18.0f
 #define PROT_DI_DT_MAX_A_PER_STEP       15.0f
 #define PROT_CHARGER_OV_WARN_V          17.2f
 #define PROT_CHARGER_OV_TRIP_V          17.5f

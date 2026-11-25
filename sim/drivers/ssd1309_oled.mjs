@@ -5,7 +5,9 @@ import {
 
 import {
     BMS_MODE_CHARGE,
+    BMS_MODE_CHARGE_CONFIRM,
     BMS_MODE_DISCHARGE,
+    BMS_MODE_DISCHARGE_CONFIRM,
     BMS_MODE_FAULT,
     BMS_MODE_STANDBY,
     BMS_MODE_STARTUP,
@@ -408,6 +410,10 @@ export function ssd1309_mode_label(mode) {
         return 'STANDBY';
     case BMS_MODE_FAULT:
         return 'FAULT';
+    case BMS_MODE_CHARGE_CONFIRM:
+        return 'CHG_CFM';
+    case BMS_MODE_DISCHARGE_CONFIRM:
+        return 'DIS_CFM';
     default:
         return 'UNKNOWN';
     }

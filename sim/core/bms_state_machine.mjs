@@ -3,9 +3,11 @@ import {
     CHARGE_CURRENT_MIN_A,
     CHARGE_DONE_CURRENT_A,
     CHARGE_DONE_VOLTAGE_V,
+    CHARGE_CONFIRM_TIMEOUT_MS,
     CHARGE_REENABLE_HYST_V,
     CHARGER_VALID_MAX_V,
     CHARGER_VALID_MIN_V,
+    DISCHARGE_CONFIRM_TIMEOUT_MS,
     DISCHARGE_CURRENT_MIN_A,
     ESTIMATOR_MAX_DT_MS,
     INA226_BUS_VALID_MAX_V,
@@ -17,7 +19,9 @@ import {
 
 import {
     BMS_MODE_CHARGE,
+    BMS_MODE_CHARGE_CONFIRM,
     BMS_MODE_DISCHARGE,
+    BMS_MODE_DISCHARGE_CONFIRM,
     BMS_MODE_FAULT,
     BMS_MODE_STANDBY,
     BMS_MODE_STARTUP,
@@ -30,13 +34,16 @@ import {
     FAULT_RELAY_NO_RESPONSE,
     FAULT_SHORT_CIRCUIT,
     FAULT_VSENSE_FAULT,
+    PROT_LEVEL_2_WARNING,
     PROT_LEVEL_3_BRANCH,
     PROT_LEVEL_4_ISOLATE,
     RELAY_1_MAIN,
     RELAY_2_CHARGE,
     RELAY_3_LOAD,
     RELAY_4_AUX,
-    RELAY_COUNT
+    RELAY_COUNT,
+    WARN_NO_CHARGE_CURRENT,
+    WARN_NO_LOAD_CURRENT
 } from '../bms_types.mjs';
 
 import {
@@ -49,6 +56,10 @@ import {
 let s_startup_complete = false;
 let s_precharge_accum_ms = 0;
 let s_charge_done_latched = false;
+let s_charge_confirm_ms = 0;
+let s_discharge_confirm_ms = 0;
+let s_charge_confirm_failed = false;
+let s_discharge_confirm_failed = false;
 
 function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -84,6 +95,10 @@ export function bms_state_machine_reset() {
     s_startup_complete = false;
     s_precharge_accum_ms = 0;
     s_charge_done_latched = false;
+    s_charge_confirm_ms = 0;
+    s_discharge_confirm_ms = 0;
+    s_charge_confirm_failed = false;
+    s_discharge_confirm_failed = false;
 }
 
 export function bms_state_machine_init(state) {
@@ -169,6 +184,8 @@ export function bms_state_machine_step(state, dt_ms) {
         state.mode = BMS_MODE_FAULT;
         s_startup_complete = false;
         s_precharge_accum_ms = 0;
+        s_charge_confirm_ms = 0;
+        s_discharge_confirm_ms = 0;
         if (smAnyRelayClosed()) {
             hal_relay_open_all();
         }
@@ -178,6 +195,8 @@ export function bms_state_machine_step(state, dt_ms) {
 
     if (branch_fault) {
         state.mode = BMS_MODE_FAULT;
+        s_charge_confirm_ms = 0;
+        s_discharge_confirm_ms = 0;
         if (chg_branch_fault) {
             smSetRelay(RELAY_2_CHARGE, false);
         }
@@ -244,22 +263,86 @@ export function bms_state_machine_step(state, dt_ms) {
         s_charge_done_latched = true;
     }
 
+    if ((!state.charge_enabled_req) || (!state.meas.charger_present)) {
+        s_charge_confirm_failed = false;
+        s_charge_confirm_ms = 0;
+        state.warning_flags &= ~WARN_NO_CHARGE_CURRENT;
+    }
+    if (!state.load_enabled_req) {
+        s_discharge_confirm_failed = false;
+        s_discharge_confirm_ms = 0;
+        state.warning_flags &= ~WARN_NO_LOAD_CURRENT;
+    }
+
+    if (s_charge_confirm_failed) {
+        state.warning_flags |= WARN_NO_CHARGE_CURRENT;
+        if (state.prot_level < PROT_LEVEL_2_WARNING) {
+            state.prot_level = PROT_LEVEL_2_WARNING;
+        }
+    }
+    if (s_discharge_confirm_failed) {
+        state.warning_flags |= WARN_NO_LOAD_CURRENT;
+        if (state.prot_level < PROT_LEVEL_2_WARNING) {
+            state.prot_level = PROT_LEVEL_2_WARNING;
+        }
+    }
+
     const allow_charge = state.charge_enabled_req &&
         (!s_charge_done_latched) &&
+        (!s_charge_confirm_failed) &&
         bms_state_machine_is_charger_valid(state.meas) &&
         (bus_v < BMS_FULL_V);
     smSetRelay(RELAY_2_CHARGE, allow_charge);
 
-    const allow_load = state.load_enabled_req && (bus_v > PROT_BAT_UV_TRIP_V);
+    const allow_load = state.load_enabled_req &&
+        (!s_discharge_confirm_failed) &&
+        (bus_v > PROT_BAT_UV_TRIP_V);
     smSetRelay(RELAY_3_LOAD, allow_load);
 
     const r1 = hal_relay_read_cmd(RELAY_1_MAIN);
     const r2 = hal_relay_read_cmd(RELAY_2_CHARGE);
+    const r3 = hal_relay_read_cmd(RELAY_3_LOAD);
     if (r1 && r2 && (curr_a >= CHARGE_CURRENT_MIN_A)) {
+        s_charge_confirm_ms = 0;
+        s_discharge_confirm_ms = 0;
         state.mode = BMS_MODE_CHARGE;
     } else if (r1 && (curr_a <= -DISCHARGE_CURRENT_MIN_A)) {
+        s_charge_confirm_ms = 0;
+        s_discharge_confirm_ms = 0;
         state.mode = BMS_MODE_DISCHARGE;
+    } else if (allow_charge && r1 && r2) {
+        s_discharge_confirm_ms = 0;
+        s_charge_confirm_ms += dt_ms;
+        if (s_charge_confirm_ms >= CHARGE_CONFIRM_TIMEOUT_MS) {
+            smSetRelay(RELAY_2_CHARGE, false);
+            s_charge_confirm_failed = true;
+            s_charge_confirm_ms = 0;
+            state.warning_flags |= WARN_NO_CHARGE_CURRENT;
+            if (state.prot_level < PROT_LEVEL_2_WARNING) {
+                state.prot_level = PROT_LEVEL_2_WARNING;
+            }
+            state.mode = BMS_MODE_STANDBY;
+        } else {
+            state.mode = BMS_MODE_CHARGE_CONFIRM;
+        }
+    } else if (allow_load && r1 && r3) {
+        s_charge_confirm_ms = 0;
+        s_discharge_confirm_ms += dt_ms;
+        if (s_discharge_confirm_ms >= DISCHARGE_CONFIRM_TIMEOUT_MS) {
+            smSetRelay(RELAY_3_LOAD, false);
+            s_discharge_confirm_failed = true;
+            s_discharge_confirm_ms = 0;
+            state.warning_flags |= WARN_NO_LOAD_CURRENT;
+            if (state.prot_level < PROT_LEVEL_2_WARNING) {
+                state.prot_level = PROT_LEVEL_2_WARNING;
+            }
+            state.mode = BMS_MODE_STANDBY;
+        } else {
+            state.mode = BMS_MODE_DISCHARGE_CONFIRM;
+        }
     } else {
+        s_charge_confirm_ms = 0;
+        s_discharge_confirm_ms = 0;
         state.mode = BMS_MODE_STANDBY;
     }
 

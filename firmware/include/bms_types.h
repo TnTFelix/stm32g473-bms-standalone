@@ -7,7 +7,7 @@
 #include <string.h>
 #include "bms_config.h"
 
-#define BMS_MODE_COUNT      5U
+#define BMS_MODE_COUNT      7U
 #define PROT_LEVEL_COUNT    5U
 #define FAULT_COUNT         9U
 #define FAULT_ALL_MASK      0x01FFU
@@ -17,7 +17,9 @@ typedef enum {
     BMS_MODE_CHARGE = 1,
     BMS_MODE_DISCHARGE = 2,
     BMS_MODE_STANDBY = 3,
-    BMS_MODE_FAULT = 4
+    BMS_MODE_FAULT = 4,
+    BMS_MODE_CHARGE_CONFIRM = 5,
+    BMS_MODE_DISCHARGE_CONFIRM = 6
 } bms_mode_t;
 
 typedef enum {
@@ -40,6 +42,9 @@ typedef enum {
     FAULT_VSENSE_FAULT = (1U << 7),
     FAULT_RELAY_NO_RESPONSE = (1U << 8)
 } bms_fault_code_t;
+
+#define WARN_NO_CHARGE_CURRENT  (1U << 9)
+#define WARN_NO_LOAD_CURRENT    (1U << 10)
 
 typedef enum {
     RELAY_1_MAIN = 0,

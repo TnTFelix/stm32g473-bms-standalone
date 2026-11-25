@@ -6,6 +6,10 @@
 static bool s_startup_complete = false;
 static uint32_t s_precharge_accum_ms = 0U;
 static bool s_charge_done_latched = false;
+static uint32_t s_charge_confirm_ms = 0U;
+static uint32_t s_discharge_confirm_ms = 0U;
+static bool s_charge_confirm_failed = false;
+static bool s_discharge_confirm_failed = false;
 
 static void sm_sync_relays(bms_system_state_t *state)
 {
@@ -50,6 +54,10 @@ void bms_state_machine_reset(void)
     s_startup_complete = false;
     s_precharge_accum_ms = 0U;
     s_charge_done_latched = false;
+    s_charge_confirm_ms = 0U;
+    s_discharge_confirm_ms = 0U;
+    s_charge_confirm_failed = false;
+    s_discharge_confirm_failed = false;
 }
 
 bool bms_state_machine_init(bms_system_state_t *state)
@@ -105,6 +113,7 @@ bool bms_state_machine_step(bms_system_state_t *state, uint32_t dt_ms)
     bool allow_load;
     bool r1;
     bool r2;
+    bool r3;
 
     if (state == NULL) {
         return false;
@@ -150,6 +159,8 @@ bool bms_state_machine_step(bms_system_state_t *state, uint32_t dt_ms)
         state->mode = BMS_MODE_FAULT;
         s_startup_complete = false;
         s_precharge_accum_ms = 0U;
+        s_charge_confirm_ms = 0U;
+        s_discharge_confirm_ms = 0U;
         if (sm_any_relay_closed()) {
             hal_relay_open_all();
         }
@@ -160,6 +171,8 @@ bool bms_state_machine_step(bms_system_state_t *state, uint32_t dt_ms)
     /* Priority 2: Post-startup branch-level fault */
     if (branch_fault) {
         state->mode = BMS_MODE_FAULT;
+        s_charge_confirm_ms = 0U;
+        s_discharge_confirm_ms = 0U;
         if (chg_branch_fault) {
             (void)sm_set_relay(RELAY_2_CHARGE, false);
         }
@@ -228,22 +241,86 @@ bool bms_state_machine_step(bms_system_state_t *state, uint32_t dt_ms)
         s_charge_done_latched = true;
     }
 
+    if ((!state->charge_enabled_req) || (!state->meas.charger_present)) {
+        s_charge_confirm_failed = false;
+        s_charge_confirm_ms = 0U;
+        state->warning_flags &= ~WARN_NO_CHARGE_CURRENT;
+    }
+    if (!state->load_enabled_req) {
+        s_discharge_confirm_failed = false;
+        s_discharge_confirm_ms = 0U;
+        state->warning_flags &= ~WARN_NO_LOAD_CURRENT;
+    }
+
+    if (s_charge_confirm_failed) {
+        state->warning_flags |= WARN_NO_CHARGE_CURRENT;
+        if (state->prot_level < PROT_LEVEL_2_WARNING) {
+            state->prot_level = PROT_LEVEL_2_WARNING;
+        }
+    }
+    if (s_discharge_confirm_failed) {
+        state->warning_flags |= WARN_NO_LOAD_CURRENT;
+        if (state->prot_level < PROT_LEVEL_2_WARNING) {
+            state->prot_level = PROT_LEVEL_2_WARNING;
+        }
+    }
+
     allow_charge = state->charge_enabled_req &&
                    (!s_charge_done_latched) &&
+                   (!s_charge_confirm_failed) &&
                    bms_state_machine_is_charger_valid(&state->meas) &&
                    (bus_v < BMS_FULL_V);
     (void)sm_set_relay(RELAY_2_CHARGE, allow_charge);
 
-    allow_load = state->load_enabled_req && (bus_v > PROT_BAT_UV_TRIP_V);
+    allow_load = state->load_enabled_req &&
+                 (!s_discharge_confirm_failed) &&
+                 (bus_v > PROT_BAT_UV_TRIP_V);
     (void)sm_set_relay(RELAY_3_LOAD, allow_load);
 
     r1 = hal_relay_read_cmd(RELAY_1_MAIN);
     r2 = hal_relay_read_cmd(RELAY_2_CHARGE);
+    r3 = hal_relay_read_cmd(RELAY_3_LOAD);
     if (r1 && r2 && (curr_a >= CHARGE_CURRENT_MIN_A)) {
+        s_charge_confirm_ms = 0U;
+        s_discharge_confirm_ms = 0U;
         state->mode = BMS_MODE_CHARGE;
     } else if (r1 && (curr_a <= -DISCHARGE_CURRENT_MIN_A)) {
+        s_charge_confirm_ms = 0U;
+        s_discharge_confirm_ms = 0U;
         state->mode = BMS_MODE_DISCHARGE;
+    } else if (allow_charge && r1 && r2) {
+        s_discharge_confirm_ms = 0U;
+        s_charge_confirm_ms += dt_ms;
+        if (s_charge_confirm_ms >= CHARGE_CONFIRM_TIMEOUT_MS) {
+            (void)sm_set_relay(RELAY_2_CHARGE, false);
+            s_charge_confirm_failed = true;
+            s_charge_confirm_ms = 0U;
+            state->warning_flags |= WARN_NO_CHARGE_CURRENT;
+            if (state->prot_level < PROT_LEVEL_2_WARNING) {
+                state->prot_level = PROT_LEVEL_2_WARNING;
+            }
+            state->mode = BMS_MODE_STANDBY;
+        } else {
+            state->mode = BMS_MODE_CHARGE_CONFIRM;
+        }
+    } else if (allow_load && r1 && r3) {
+        s_charge_confirm_ms = 0U;
+        s_discharge_confirm_ms += dt_ms;
+        if (s_discharge_confirm_ms >= DISCHARGE_CONFIRM_TIMEOUT_MS) {
+            (void)sm_set_relay(RELAY_3_LOAD, false);
+            s_discharge_confirm_failed = true;
+            s_discharge_confirm_ms = 0U;
+            state->warning_flags |= WARN_NO_LOAD_CURRENT;
+            if (state->prot_level < PROT_LEVEL_2_WARNING) {
+                state->prot_level = PROT_LEVEL_2_WARNING;
+            }
+            state->mode = BMS_MODE_STANDBY;
+        } else {
+            state->mode = BMS_MODE_DISCHARGE_CONFIRM;
+        }
     } else {
+        s_charge_confirm_ms = 0U;
+        s_discharge_confirm_ms = 0U;
         state->mode = BMS_MODE_STANDBY;
     }
 

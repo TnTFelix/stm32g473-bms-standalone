@@ -1,6 +1,6 @@
 import { BMS_INITIAL_SOC_PCT, BMS_NOMINAL_CAPACITY_AH } from './bms_config.mjs';
 
-export const BMS_MODE_COUNT = 5;
+export const BMS_MODE_COUNT = 7;
 export const PROT_LEVEL_COUNT = 5;
 export const FAULT_COUNT = 9;
 export const FAULT_ALL_MASK = 0x01FF;
@@ -10,13 +10,17 @@ export const BMS_MODE_CHARGE = 1;
 export const BMS_MODE_DISCHARGE = 2;
 export const BMS_MODE_STANDBY = 3;
 export const BMS_MODE_FAULT = 4;
+export const BMS_MODE_CHARGE_CONFIRM = 5;
+export const BMS_MODE_DISCHARGE_CONFIRM = 6;
 
 export const BMS_MODE = Object.freeze({
     BMS_MODE_STARTUP,
     BMS_MODE_CHARGE,
     BMS_MODE_DISCHARGE,
     BMS_MODE_STANDBY,
-    BMS_MODE_FAULT
+    BMS_MODE_FAULT,
+    BMS_MODE_CHARGE_CONFIRM,
+    BMS_MODE_DISCHARGE_CONFIRM
 });
 
 export const PROT_LEVEL_1_NORMAL = 1;
@@ -43,6 +47,9 @@ export const FAULT_CHARGER_OVERVOLTAGE = 0x0020;
 export const FAULT_INA226_DISCONNECTED = 0x0040;
 export const FAULT_VSENSE_FAULT = 0x0080;
 export const FAULT_RELAY_NO_RESPONSE = 0x0100;
+
+export const WARN_NO_CHARGE_CURRENT = (1 << 9);
+export const WARN_NO_LOAD_CURRENT = (1 << 10);
 
 export const FAULT = Object.freeze({
     FAULT_NONE,

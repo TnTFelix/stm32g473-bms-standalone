@@ -58,18 +58,35 @@ float bms_estimator_calc_efficiency_pct(float energy_in_wh, float energy_out_wh)
 
 float bms_estimator_ocv_to_soc_pct(float ocv_v)
 {
-    float span = BMS_FULL_V - BMS_EMPTY_V;
-    float soc;
+    /* 11-point 4S Li-ion NMC OCV-SOC lookup table (4 x 3.7 V NMC cell curve) */
+    static const float k_ocv_v[11] = {
+        12.00f, 13.40f, 14.12f, 14.52f, 14.76f,
+        14.96f, 15.20f, 15.52f, 15.88f, 16.32f, 16.80f
+    };
+    static const float k_soc_pct[11] = {
+        0.0f, 10.0f, 20.0f, 30.0f, 40.0f,
+        50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f
+    };
+    uint32_t i;
 
-    if (!isfinite(ocv_v) || (span <= 0.0f) || (ocv_v <= BMS_EMPTY_V)) {
+    if (!isfinite(ocv_v) || (ocv_v <= k_ocv_v[0])) {
         return 0.0f;
     }
-    if (ocv_v >= BMS_FULL_V) {
+    if (ocv_v >= k_ocv_v[10]) {
         return 100.0f;
     }
 
-    soc = ((ocv_v - BMS_EMPTY_V) / span) * 100.0f;
-    return estimator_clamp_pct(soc);
+    for (i = 0U; i < 10U; i++) {
+        if (ocv_v <= k_ocv_v[i + 1U]) {
+            float v_lo = k_ocv_v[i];
+            float v_hi = k_ocv_v[i + 1U];
+            float frac = (ocv_v - v_lo) / (v_hi - v_lo);
+            float soc = k_soc_pct[i] + (frac * (k_soc_pct[i + 1U] - k_soc_pct[i]));
+            return estimator_clamp_pct(soc);
+        }
+    }
+
+    return 100.0f;
 }
 
 bool bms_estimator_apply_rest_ocv_correction(bms_system_state_t *state)

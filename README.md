@@ -4,21 +4,22 @@ Hệ thống giám sát năng lượng và bảo vệ nguồn pin Lithium-ion 4S
 
 ## Cấu trúc thư mục
 
-- `firmware/` — Mã nguồn C99 (10 mô-đun cốt lõi: HAL STM32G4 / HAL Mock, driver INA226A, cảm biến áp bộ sạc ADC1, điều khiển khóa chéo 4 relay, hiển thị OLED SSD1309 4 trang, bộ ước lượng Coulomb Counting SOC, bảo vệ 5 cấp với 9 mã lỗi bitmask, máy trạng thái FSM 5 chế độ).
+- `firmware/` — Mã nguồn C99 (10 mô-đun cốt lõi: HAL STM32G4 / HAL Mock, driver INA226A, cảm biến áp bộ sạc ADC1, điều khiển khóa chéo 4 relay, hiển thị OLED SSD1309 4 trang, bộ ước lượng Coulomb Counting SOC với `η = 0,992` & tra cứu OCV 4S NMC khi nghỉ ≥ 30 phút, bảo vệ 5 cấp với 9 mã lỗi bitmask, máy trạng thái FSM 7 chế độ kèm xác nhận dòng `CHARGE_CONFIRM` / `DISCHARGE_CONFIRM`).
 - `sim/` — Bộ mô phỏng hành vi trên máy chủ (Node.js) tương ứng các mô-đun C99.
-- `tests/` — Bộ kiểm thử tự động 5 pha (`phase1.test.mjs` .. `phase5.test.mjs`) và kiểm tra đối chiếu tĩnh C99 (`c_firmware_check.test.mjs`, `CF-01..CF-25`).
+- `tests/` — Bộ kiểm thử tự động 5 pha (`phase1.test.mjs` .. `phase5.test.mjs`) và kiểm tra đối chiếu tĩnh C99 (`c_firmware_check.test.mjs`, `CF-01..CF-25`) — **172/172 ca kiểm thử đạt**.
 - `stm32g473_bms_4s.ioc` — Tệp cấu hình chân ngoại vi STM32CubeMX (14 chân trên gói LQFP100).
 
-## Bảng phân bổ chân STM32G473VET6 (14 chân)
+## Bảng phân bổ chân STM32G473VET6 (14 chân cốt lõi + chân dự phòng mở rộng)
 
 | Chức năng | Chân MCU | Ngoại vi / Chế độ | Ghi chú |
 | :--- | :---: | :--- | :--- |
 | **I2C3 SCL / SDA (INA226A 0x40)** | `PC8`, `PC9` | `I2C3` (AF8, Open-Drain) | 100 kHz HSI16, shunt 2 mΩ (`CAL = 2560`), kéo lên 4,7 kΩ |
-| **Áp bộ sạc (cầu phân áp 6:1)** | `PA0` | `ADC1_IN1` (Analog 12-bit) | R1 = 37,5 kΩ / R2 = 7,5 kΩ, giới hạn an toàn ≤ 3,25 V |
+| **Áp bộ sạc (cầu phân áp E96)** | `PA0` | `ADC1_IN1` (Analog 12-bit) | R1 = 37,4 kΩ / R2 = 7,5 kΩ (tỉ số ~5,987), giới hạn an toàn ≤ 3,25 V |
 | **OLED SSD1309 SPI1 SCK / MOSI** | `PA5`, `PA7` | `SPI1` (AF5, Push-Pull) | Master Mode 0, khung hình 1024 byte, chu kỳ 200 ms |
 | **OLED RES / CS / DC** | `PB5`, `PB6`, `PB7` | GPIO Output Push-Pull | Điều khiển reset cứng, chọn chip mềm và lệnh/dữ liệu |
-| **Cụm 4 Relay công suất 30 A** | `PC0`, `PC1`, `PC2`, `PC3` | GPIO Output Push-Pull | R1 MAIN, R2 CHARGE, R3 LOAD, R4 AUX/PC (Active-High) |
+| **Cụm 4 Relay công suất 30 A** | `PC0`, `PC1`, `PC2`, `PC3` | GPIO Output Push-Pull | R1 MAIN, R2 CHARGE, R3 LOAD, R4 AUX/PC (Active-High + R kéo xuống 10 kΩ) |
 | **SWD Debug (ST-LINK)** | `PA13`, `PA14` | `SWDIO` / `SWCLK` | Bảo toàn để nạp và gỡ lỗi |
+| **Ngắt Alert SOL (dự phòng nâng cấp)** | `PC13` | `EXTI13` (Falling-Edge) | Khai báo sẵn macro trong `bms_config.h` cho giai đoạn FreeRTOS |
 
 ## Kiểm thử mô phỏng & đối chiếu C99
 

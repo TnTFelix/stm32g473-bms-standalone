@@ -322,8 +322,8 @@ describe('Suite 3: Voltage Sensor PA0 Driver (P2-C1..C6)', () => {
         assert.equal(state.meas.charger_present, false);
 
         assert.equal(voltage_sensor_raw_to_charger_v(0), 0);
-        approx(voltage_sensor_raw_to_charger_v(4095), 19.8);
-        approx(voltage_sensor_raw_to_charger_v(5000), 19.8);
+        approx(voltage_sensor_raw_to_charger_v(4095), ADC_VREF_V * VSENSE_DIVIDER_RATIO);
+        approx(voltage_sensor_raw_to_charger_v(5000), ADC_VREF_V * VSENSE_DIVIDER_RATIO);
         assert.equal(voltage_sensor_raw_to_charger_v(-1), 0);
         assert.equal(voltage_sensor_raw_to_charger_v(Number.NaN), 0);
     });
@@ -332,7 +332,7 @@ describe('Suite 3: Voltage Sensor PA0 Driver (P2-C1..C6)', () => {
         assert.equal(voltage_sensor_init(), true);
         const state = createDefaultSystemState();
 
-        assert.equal(hal_mock_set_adc_pa0_pin_voltage(2.8), true);
+        assert.equal(hal_mock_set_adc_pa0_pin_voltage(16.8 / VSENSE_DIVIDER_RATIO), true);
         assert.equal(voltage_sensor_read(state.meas), true);
         assert.equal(state.meas.vsense_ok, true);
         assert.equal(state.meas.charger_present, true);
@@ -410,7 +410,7 @@ describe('Suite 3: Voltage Sensor PA0 Driver (P2-C1..C6)', () => {
         assert.equal(state.meas.charger_voltage_v, 0);
 
         hal_mock_set_adc_fault(false);
-        assert.equal(hal_mock_set_adc_pa0_pin_voltage(2.4), true);
+        assert.equal(hal_mock_set_adc_pa0_pin_voltage(14.4 / VSENSE_DIVIDER_RATIO), true);
         assert.equal(voltage_sensor_read(state.meas), true);
         approx(state.meas.charger_voltage_v, 14.4, 0.01);
     });

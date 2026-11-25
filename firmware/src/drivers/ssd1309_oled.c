@@ -357,6 +357,7 @@ bool ssd1309_render_page(const bms_system_state_t *state, bms_oled_page_t page)
     qchg_ah = ssd1309_clamp_float(state->energy.charge_capacity_ah, 0.0f, 999.9f);
     qdis_ah = ssd1309_clamp_float(state->energy.discharge_capacity_ah, 0.0f, 999.9f);
     eff_pct = ssd1309_clamp_float(state->energy.efficiency_pct, 0.0f, 100.0f);
+    (void)qdis_ah;
     rem_m = ssd1309_clamp_float(state->energy.remaining_time_min, 0.0f, 9999.0f);
     chg_m = ssd1309_clamp_float(state->energy.estimated_charge_time_min, 0.0f, 9999.0f);
     snap_v = ssd1309_clamp_float(state->snapshot.bus_voltage_v, -999.9f, 999.9f);
@@ -577,6 +578,10 @@ const char *ssd1309_mode_label(bms_mode_t mode)
         return "STANDBY";
     case BMS_MODE_FAULT:
         return "FAULT";
+    case BMS_MODE_CHARGE_CONFIRM:
+        return "CHG_CFM";
+    case BMS_MODE_DISCHARGE_CONFIRM:
+        return "DIS_CFM";
     default:
         return "UNKNOWN";
     }

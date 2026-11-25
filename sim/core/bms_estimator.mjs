@@ -69,16 +69,34 @@ export function bms_estimator_calc_efficiency_pct(energy_in_wh, energy_out_wh) {
     return clampPct((energy_out_wh / energy_in_wh) * 100);
 }
 
+const K_NMC_4S_OCV_V = [
+    12.00, 13.40, 14.12, 14.52, 14.76,
+    14.96, 15.20, 15.52, 15.88, 16.32, 16.80
+];
+const K_NMC_4S_SOC_PCT = [
+    0.0, 10.0, 20.0, 30.0, 40.0,
+    50.0, 60.0, 70.0, 80.0, 90.0, 100.0
+];
+
 export function bms_estimator_ocv_to_soc_pct(ocv_v) {
-    const span = BMS_FULL_V - BMS_EMPTY_V;
-    if (typeof ocv_v !== 'number' || !Number.isFinite(ocv_v) || span <= 0 || ocv_v <= BMS_EMPTY_V) {
+    if (typeof ocv_v !== 'number' || !Number.isFinite(ocv_v) || ocv_v <= K_NMC_4S_OCV_V[0]) {
         return 0;
     }
-    if (ocv_v >= BMS_FULL_V) {
+    if (ocv_v >= K_NMC_4S_OCV_V[10]) {
         return 100;
     }
 
-    return clampPct(((ocv_v - BMS_EMPTY_V) / span) * 100);
+    for (let i = 0; i < 10; i++) {
+        if (ocv_v <= K_NMC_4S_OCV_V[i + 1]) {
+            const vLo = K_NMC_4S_OCV_V[i];
+            const vHi = K_NMC_4S_OCV_V[i + 1];
+            const frac = (ocv_v - vLo) / (vHi - vLo);
+            const soc = K_NMC_4S_SOC_PCT[i] + (frac * (K_NMC_4S_SOC_PCT[i + 1] - K_NMC_4S_SOC_PCT[i]));
+            return clampPct(soc);
+        }
+    }
+
+    return 100;
 }
 
 export function bms_estimator_apply_rest_ocv_correction(state) {
